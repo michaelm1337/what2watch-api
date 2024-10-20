@@ -1,0 +1,57 @@
+version: '3.4'
+
+services:
+  movies2watch.api:
+    image: ${DOCKER_REGISTRY-}webapi
+    container_name: movies2watch-api
+    build:
+      context: .
+      dockerfile: MoviesToWatch/Dockerfile
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+    depends_on:
+      - movies2watch.db           
+    environment:
+      - MongoDbSettings__ConnectionString=mongodb://${ADMIN_USER}:${ADMIN_PASSWORD}@movies2watch.db:27017
+      - MongoDbSettings__DatabaseName=w2w
+  
+  movies2watch.db:
+    image: mongo
+    restart: always
+    container_name: movies2watch.db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${ADMIN_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${ADMIN_PASSWORD}
+    volumes:
+      - mongodb:/data/db
+      - mongodb_config:/data/configdb
+
+  mongo.express:
+    image: mongo-express
+    restart: always
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=${ADMIN_USER}
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=${ADMIN_PASSWORD}
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_MONGODB_SERVER=movies2watch.db
+      - ME_CONFIG_MONGODB_AUTH_USERNAME=${ADMIN_USER}
+      - ME_CONFIG_MONGODB_AUTH_PASSWORD=${ADMIN_PASSWORD}
+      - ME_CONFIG_MONGODB_URL= mongodb://movies2watch.db:27017
+    ports:
+      - 8080:8081
+    depends_on:
+      - movies2watch.db
+
+  movies2watch.seq:
+    image: datalust/seq:latest
+    container_name: movies2watch-seq
+    environment:
+     - ACCEPT_EULA=Y
+    ports:
+     - 5341:5341
+     - 9021:80
+
+volumes:
+  mongodb:
+  mongodb_config:
